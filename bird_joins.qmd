@@ -1,0 +1,62 @@
+---
+title: "bird_joins"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+load packages
+```{r}
+library(tidyverse)
+library(here)
+```
+
+read in data
+```{r}
+bird_observations <- read_csv(here("data", "52_pp52_birds_1.csv"))
+sites <- read_csv(here("data", "52_pp52_sites_1.csv"))
+surveys <- read_csv(here("data", "52_pp52_surveys_1.csv"))
+taxalist <- read_csv(here("data", "52_pp52_taxalist_1.csv"))
+```
+
+clean data
+```{r}
+birds_subset <- bird_observations %>% 
+  filter(species_id %in% c("BHCO", "RWBL"),
+         site_id %in% c("LI-W", "NU-C"))
+```
+
+left join practice
+```{r}
+# join taxalist and sites into birds_subset
+birds_left1 <- left_join(birds_subset, taxalist, by = "species_id")
+birds_left2 <- left_join(birds_left1, sites, by = "site_id")
+```
+
+full join practice
+```{r}
+# full join birds_subset and site
+birds_full <- full_join(birds_subset, sites)
+# leaves tons of extra lines of site metadata because we subset so many sites out of the birds dataset
+```
+
+data wrangling practice
+```{r}
+birds <- bird_observations %>% 
+  rename(birds_obs_notes = "notes") %>% # rename notes column
+  left_join(sites, by = "site_id") %>% # only need to add y, since we piped the x data frame
+  left_join(taxalist, by = "species_id") %>% 
+  left_join(surveys, by = c("survey_id", "site_id")) %>% 
+  select(survey_date, common_name, park_name, bird_count) %>% 
+  mutate(survey_month = month(survey_date)) %>% 
+  mutate(survey_month = factor(survey_month))
+
+class(birds$survey_month)
+
+# find total number of birds observed by park and month, for 4 specific parks
+birds %>% 
+  group_by(park_name, survey_month) %>% 
+  summarise(sum(bird_count)) %>% 
+  filter(park_name %in% c("Lindo", "Orme", "Palomino", "Sonrisa"))
+```
+
